@@ -1,0 +1,5 @@
+UnlitGeneric {
+    "$basetexture" "asap/borders"
+    "$vertexalpha" "1"
+    "$vertexcolor" "1"
+}

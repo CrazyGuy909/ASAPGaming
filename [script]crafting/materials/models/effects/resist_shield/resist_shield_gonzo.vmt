@@ -1,0 +1,78 @@
+"VertexLitGeneric"
+{
+	"$baseTexture" "effects/AnimatedCaustic/caustic.vtf"
+	"$translucent" "1"
+	"$additive" "1"
+	//"$bumpmap" "models/effects/flat_normal"
+
+
+	"$phong" "1"
+	"$phongexponent" "3"
+	"$phongboost" "4"	
+	"$lightwarptexture" "models/player/pyro/pyro_lightwarp"
+	"$phongfresnelranges"	"[.2 4 2]"
+	"$phongtint" "[3 .7 .5]"
+	"$halflambert" "1"
+
+	// Rim lighting parameters
+	"$rimlight" "1"												// To enable rim lighting (requires phong)
+	"$rimlightexponent" "30"										// Exponent for phong component of rim lighting	
+	"$rimlightboost" "20"										// Boost for ambient cube component of rim lighting
+	"$selfillumfresnel" "10"
+
+	"$selfillumfresnelminmaxexp" "[0 1 1]"
+	"$selfillum" "1"
+	
+	"$selfillumtint" "[-0.3 -0.3 -0.3]"
+	"$selfillumtint_base" "[1.3 1.3 1.3]"
+	"$shield_proxy" 0
+	"$shield_dec" 2
+	"$shield_mul" 0
+	"$shield_pulse" 0
+	"$shield_falloff" 0
+
+	"Proxies"
+	{
+		"ShieldDamage"
+		{
+			"resultVar"	"$shield_proxy"
+		}
+		"Divide"
+		{
+			"srcVar1"	"$shield_proxy"
+			"srcVar2"	"$shield_dec"
+			"resultVar"	"$shield_mul"
+		}
+		"sine"
+		{
+			sineperiod	2.3
+			sinemin		-.25
+			sinemax		.25
+			resultvar	"$shield_pulse"
+		}
+		"add"
+		{
+			srcvar1 $shield_mul
+			srcvar2 $shield_pulse
+			resultvar "$shield_falloff"
+		}
+		"Divide"
+		{
+			"srcVar1"	"$shield_falloff"
+			"srcVar2"	"$shield_dec"
+			"resultVar"	"$shield_falloff"
+		}
+		"Multiply"
+		{
+			"srcVar1"	"$shield_falloff"
+			"srcVar2"	"$selfillumtint_base"
+			"resultVar"	"$selfillumtint"
+		}
+		"AnimatedTexture" 
+		{ 
+		"animatedTextureVar" "$baseTexture" 
+		"animatedTextureFrameNumVar" "$frame" 
+		"animatedTextureFrameRate" "16" 
+		}
+	}
+}

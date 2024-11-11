@@ -1,0 +1,21 @@
+"VertexlitGeneric"
+{
+	"$baseTexture" "models/gonzo/fortnite/trophy_bronze"
+//	"$bumpmap" "models/weapons/c_items/c_saxxy_normal"	
+
+	"$envmap" "models/gonzo/fortnite/silver_cubemap"
+	"$envmaptint" "[.6 .2 0]"
+	
+//	"$normalmapalphaenvmapmask" "1"
+	"$basemapalphaphongmask"	"1"
+
+	"$phong" "1"
+	"$phongexponent" "60"
+	"$phongboost" "5"
+	"$phongfresnelranges"	"[.2 1 4]"
+
+	"$rimlight" "1"
+	"$rimlightexponent" "4"
+	"$rimlightboost" "2"
+
+}

@@ -1,0 +1,5 @@
+"UnlitGeneric"{
+    "$basetexture" "ui/asap/notify"
+    "$vertexcolor" "1"
+    "$vertexalpha" "1"
+}

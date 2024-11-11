@@ -1,0 +1,25 @@
+{
+  "name": "marketplace",
+  "version": "1.0.0",
+  "description": "Marketplace for asap",
+  "main": "init.js",
+  "scripts": {
+    "test": "node init.js",
+    "start": "node init.js"
+  },
+  "author": "gonzo",
+  "license": "ISC",
+  "dependencies": {
+    "@pm2/io": "^4.3.5",
+    "@types/node": "^13.13.52",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "forever-monitor": "^2.0.0",
+    "log-timestamp": "^0.3.0",
+    "mysql": "^2.18.1",
+    "nodemailer": "^6.6.2",
+    "nodemon": "^2.0.20",
+    "redis": "^3.1.2",
+    "steamid": "^1.1.3"
+  }
+}

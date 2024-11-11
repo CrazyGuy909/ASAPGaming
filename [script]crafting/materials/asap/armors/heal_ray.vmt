@@ -1,0 +1,6 @@
+UnlitGeneric {
+    "$basetexture" "asap/armors/heal_ray"
+    "$vertexcolor" "1"
+    "$vertexalpha" "1"
+    "$additive" "1"
+}

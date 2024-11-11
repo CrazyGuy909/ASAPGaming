@@ -1,0 +1,5 @@
+"UnlitGeneric"{
+    "$basetexture" "hud/wvh/human_bar"
+    "$vertexcolor" "1"
+    "$vertexalpha" "1"
+}

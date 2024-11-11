@@ -1,0 +1,8 @@
+"VertexLitGeneric"
+{
+	"$baseTexture"			"gonzo/zmlab/zmlab_dropoff/zmlab_dropoff_diff"
+
+	"$surfaceprop" "metal"
+	"$model" 1
+
+}

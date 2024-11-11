@@ -1,0 +1,7 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/asapgaming/destiny2/shaxx/shaxxfur"
+	$nocull 1
+	$halflambert 1
+	$translucent 1
+}

@@ -1,0 +1,5 @@
+"UnlitGeneric"{
+    "$basetexture" "hud/wvh/wolf_ultimate"
+    "$vertexcolor" "1"
+    "$vertexalpha" "1"
+}

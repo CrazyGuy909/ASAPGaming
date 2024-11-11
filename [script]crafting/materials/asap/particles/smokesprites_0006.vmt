@@ -1,0 +1,7 @@
+"VertexLitGeneric"
+{
+	// Original shader: BaseTimesVertexColorAlphaBlend
+	"$basetexture" "particle/smokesprites0331"
+	"$translucent" "1"
+	"$model" 		"1"
+}

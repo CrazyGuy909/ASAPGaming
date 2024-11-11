@@ -1,0 +1,11 @@
+VertexLitGeneric
+{
+$baseTexture "models\weapons\rinfect\coins_D"
+$bumpmap "models\weapons\rinfect\coins_N"
+
+$phongboost 0
+$phongexponent 0
+$phongfresnelranges "[0 2 30]"
+$halflambert 1
+$phong 0
+}

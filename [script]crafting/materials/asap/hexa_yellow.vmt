@@ -1,0 +1,68 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "sprites/heatwavedx70"
+	"$bumpmap" "white"
+	"$detail" "asap/hexa_yellow"
+	"$detailscale" ".5"
+	"$phong" "1"
+	"$color2" "[.2 .2 .3]"
+	"$phongalbedotint" "1"
+	"$model" "1"
+	"$phongtint" "[4 2 5]"
+	"$lightwarptexture" "sprites/hydragutbeam"
+	"$additive" "1"
+	"$basemapalphaphongmask" "1"
+	"$halflambert" "1"
+	"$PhongExponent" "50"
+	"$PhongBoost" "20"
+	"$rimlight" "1"
+	"$rimboost" "80"
+	"$rimexponent" "5"
+	"Proxies"
+	{
+		"TextureScroll"
+			{
+			"Texturescrollvar" "$detailtexturetransform"
+			"Texturescrollrate" "0.2"
+			"Texturescrollangle" "0"
+			}
+
+		"Sine" // a proxy which produces a sine wave
+			{
+				"resultVar"	"$phongtint[0]" // The shader parameter to be manipulated
+				"sineperiod"	"8"
+				"sinemin"		"0"
+				"sinemax"		"5"
+			}
+		"Sine" // a proxy which produces a sine wave
+			{
+				"resultVar"	"$phongtint[1]" // The shader parameter to be manipulated
+				"sineperiod"	"8"
+				"sinemin"		"3"
+				"sinemax"		"5"
+			}
+
+		"Sine" // a proxy which produces a sine wave
+			{
+				"resultVar"	"$color[0]" // The shader parameter to be manipulated
+				"sineperiod"	"4"
+				"sinemin"		".8"
+				"sinemax"		"3"
+			}
+
+			"Sine" // a proxy which produces a sine wave
+			{
+				"resultVar"	"$color[1]" // The shader parameter to be manipulated
+				"sineperiod"	"4"
+				"sinemin"		".8"
+				"sinemax"		"3"
+			}
+			"Sine" // a proxy which produces a sine wave
+			{
+				"resultVar"	"$color[2]" // The shader parameter to be manipulated
+				"sineperiod"	"4"
+				"sinemin"		".8"
+				"sinemax"		"1"
+			}
+	}
+}

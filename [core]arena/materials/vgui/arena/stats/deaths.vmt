@@ -1,0 +1,6 @@
+"UnlitGeneric"
+{
+	"$basetexture"	"vgui\arena\stats\deaths"
+	"$vertexalpha" 	"1"
+	"$vertexcolor" 	"1"
+}

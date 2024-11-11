@@ -1,0 +1,5 @@
+"UnlitGeneric"
+{
+	$baseTexture "models\n7legion\quarian_infiltrator\quarian_infiltrator_e"
+	$selfillum 1
+}

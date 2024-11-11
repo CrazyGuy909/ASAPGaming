@@ -1,0 +1,13 @@
+"VertexlitGeneric"
+{
+	"$baseTexture" "models/gonzo/fortnite/diffuse"
+	"$bumpmap" "models/gonzo/fortnite/backdrop_normal"
+	"$envmap" "env_cubemap"
+	"$phong"     "1"
+	"$phongexponent"  "10"
+	"$phongboost"   "4"
+	"$phongfresnelranges"   "[.1 .07 .03]"
+	"$rimlight"		"1"
+	"$rimlightexponent"		"5"
+	"$rimlightboost"		"0.2"
+}

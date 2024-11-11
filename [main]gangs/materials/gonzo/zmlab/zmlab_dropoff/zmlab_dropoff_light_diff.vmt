@@ -1,0 +1,5 @@
+"MonitorScreen"
+{
+	"$baseTexture"			"zerochain/zmlab/zmlab_dropoff/zmlab_dropoff_light_diff"
+	"$selfIllum"			1
+}

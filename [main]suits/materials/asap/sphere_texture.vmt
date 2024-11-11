@@ -1,0 +1,14 @@
+"VertexLitGeneric"
+{
+	"$basetexture" "particle/particle_smokegrenade"
+	"$translucent" "1"
+	"Proxies"
+	{
+		"TextureScroll"
+			{
+			"Texturescrollvar" "$basetexturetransform"
+			"Texturescrollrate" "8"
+			"Texturescrollangle" "45"
+			}
+	}
+}

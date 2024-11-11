@@ -1,0 +1,12 @@
+"UnlitGeneric"
+{
+	"$baseTexture"			"zerochain/zmlab/zmlab_dropoff/cave_shadow"
+	"$translucent"			1
+	"$nocull"			1
+	
+	"$nofog" "0"
+	"$no_fullbright" "0"
+
+	$depthblend 1
+	$depthblendscale 1
+}

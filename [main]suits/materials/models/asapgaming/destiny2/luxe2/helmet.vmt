@@ -1,0 +1,11 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/asapgaming/destiny2/luxe2/helmet"
+	"$bumpmap" "models/asapgaming/destiny2/luxe2/helmet_n"
+	"$phongalbedotint" 			"1"
+	$phongexponent 10
+	"$phong" 					"1"
+	"$phongboost"				".1"
+	"$phongfresnelranges"		"[.2 1 1]"
+$nocull 1
+}

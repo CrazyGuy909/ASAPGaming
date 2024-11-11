@@ -1,0 +1,14 @@
+"VertexlitGeneric"
+{
+	"$baseTexture" "models/gonzo/fortnite/coin_2"
+	"$bumpmap" "null"
+	"$envmap" "env_cubemap"
+	"$phong"     "1"
+	"$phongexponent"  "10"
+	"$phongboost"   "4"
+	"$envmaptint" "[.25 .25 .25]"
+	"$phongfresnelranges"   "[.1 .07 .03]"
+	"$rimlight"		"1"
+	"$rimlightexponent"		"5"
+	"$rimlightboost"		"0.2"
+}

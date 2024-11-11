@@ -1,0 +1,6 @@
+"UnlitGeneric"
+{
+	"$basetexture"	"vgui\arena\medieval"
+	"$vertexalpha" 	"1"
+	"$vertexcolor" 	"1"
+}

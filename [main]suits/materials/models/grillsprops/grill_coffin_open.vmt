@@ -1,0 +1,9 @@
+"vertexlitgeneric"
+{
+    "$basetexture" "models/grillsprops/grill_coffin_open"
+		"$model" "1"
+     "$surfaceprop" "wood"
+	 
+	"$bumpmap" "models/grillsprops/grill_coffin_open_normal"
+	"$ssbump" "1"
+}

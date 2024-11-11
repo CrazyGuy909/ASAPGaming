@@ -1,0 +1,913 @@
+local PAGE = {}
+PAGE.toolTipPanel = nil
+local itemCollection = {}
+local slotCollection = {}
+
+function PAGE:ShowTooltip(parent, title, text, xPos, yPos)
+    if self.toolTipPanel ~= nil then
+        self.toolTipPanel:Remove()
+    end
+
+    self.toolTipPanel = vgui.Create("DPanel", parent)
+    self.toolTipPanel:Dock(FILL)
+    --self.toolTipPanel:SetSize(parent:GetWide(), parent:GetTall())
+    --if xPos + 140 + 10 > ScrW() then
+    --	xPos = xPos - 145 - 10
+    --else
+    --	xPos = xPos + 140 + 10
+    --end
+    --if yPos + 190 >  ScrH() then
+    --	yPos = yPos - 190
+    --end
+    --Size of panel p:SetSize(140, 190)
+    --self.toolTipPanel:MakePopup()
+    self.toolTipPanel:SetMouseInputEnabled(false)
+    self.toolTipPanel.Paint = function() end
+    local richtext = vgui.Create("RichText", self.toolTipPanel)
+    richtext:DockMargin(8, 32, 8, 8)
+    richtext:Dock(FILL)
+    richtext:SetText(text)
+    richtext:SetVerticalScrollbarEnabled(false)
+end
+
+function PAGE:HideTooltip()
+    if self.toolTipPanel ~= nil then
+        self.toolTipPanel:Remove()
+    end
+end
+
+--This is called when the page is called to load
+function PAGE:Load(contentFrame)
+    if table.Count(BU3.Items.Items) == 0 then
+        RunConsoleCommand("bu3_fetchitems")
+
+        return
+    end
+
+    if self.toolTipPanel ~= nil then
+        self.toolTipPanel:Remove()
+    end
+
+    if IsValid(self.mirrorPanel) then
+        self.mirrorPanel:Remove()
+    end
+
+    self.mirrorPanel = vgui.Create("DPanel", contentFrame)
+    self.mirrorPanel:Dock(FILL)
+    self.mirrorPanel.Paint = function() end --Clear background
+
+    self.mirrorPanel.PerformLayout = function(s, w, h)
+        self.search:SetSize(w / 3, 32)
+        self.search:SetPos(w - w / 3 - 24, 24)
+
+        if (self.init and IsValid(self.scroll)) then
+            self.scroll:SetSize(w - 32, h - 96)
+            self.scroll:SetPos(16, 80)
+
+            if IsValid(self.Slots) then
+                self.Slots:SetSize(76 * 8, 3 * 78)
+                self.Slots:SetPos(w - self.Slots:GetWide() - 16, h - self.Slots:GetTall() - 16)
+                local x, y = self.Slots:GetPos()
+                local vis = self.Slots:IsVisible()
+                self.Toggle:SetPos(vis and x - self.Toggle:GetWide() - 4 or w - self.Toggle:GetWide() - 16, h - 48)
+            end
+        end
+    end
+
+    local textPanel = vgui.Create("DPanel", self.mirrorPanel)
+    textPanel:Dock(TOP)
+    textPanel:DockMargin(0, 4, 0, 0)
+    textPanel:SetTall(75)
+
+    textPanel.Paint = function(s, w, h)
+        draw.SimpleText("Show: ", "XeninUI.TextEntry", 12, h / 2, Color(255, 255, 255, 175), 0, 1)
+        draw.SimpleText("INVENTORY", BU3.UI.Fonts["large_bold"], w / 2, h / 2, Color(255, 255, 255, 175), 1, 1)
+        surface.SetDrawColor(255, 255, 255, 50)
+        surface.DrawRect(12, h - 10, w - 32, 1)
+    end
+
+    slotCollection = {}
+    local savedStat = util.JSONToTable(cookie.GetString("Inventory:Hotbar", "[]"))
+    self.scroll = vgui.Create("DScrollPanel", self.mirrorPanel)
+
+    self.scroll.PaintOver = function(s, w, h)
+        if IsValid(self.Slots) and self.Slots:IsVisible() then
+            draw.RoundedBoxEx(16, 0, 0, w, h, Color(0, 0, 0, 250), false, false, false, true)
+
+            for k, v in pairs(itemCollection) do
+                v:PaintManual()
+            end
+        end
+    end
+
+    self.icon = vgui.Create("DIconLayout", self.scroll)
+    self.icon:Dock(FILL)
+    self.icon:SetSpaceX(16)
+    self.icon:SetSpaceY(16)
+
+    --Displays all the items from a users inventory, takes a filter if needed
+    local function DisplayItems()
+        self.scroll:GetCanvas():SetPos(0, 0)
+        self.scroll:Rebuild()
+        local isFirst = true
+        local filter = cookie.GetString("unbox_filter", "")
+        local filterMode = cookie.GetString("unbox.filterMode", "")
+        local items = BU3.Inventory.Inventory
+        local filteredTable = {}
+
+        for k, v in pairs(items or {}) do
+            local item = BU3.Items.Items[k]
+            if (not item) then continue end
+
+            if not filter or string.match(string.lower(item.name), string.lower(filter), 1) then
+                if (filterMode == "crates" and item.type == "case") then
+                    filteredTable[k] = v
+                elseif (filterMode == "suits" and item.type == "entity" and string.StartWith(item.className, "armor")) then
+                    filteredTable[k] = v
+                elseif (filterMode == "weapons" and item.type == "weapon") then
+                    filteredTable[k] = v
+                elseif (tonumber(filterMode) and item.itemColorCode == tonumber(filterMode)) then
+                    filteredTable[k] = v
+                elseif (filterMode == "") then
+                    filteredTable[k] = v
+                end
+            end
+        end
+
+        items = filteredTable
+        --Create the scroll panel for the content
+        itemCollection = {}
+
+        if IsValid(self.icon) then
+            for k, v in pairs(self.icon:GetChildren()) do
+                v:Remove()
+            end
+        end
+
+        self.mirrorPanel:InvalidateLayout(true)
+        contentFrame:InvalidateLayout(true)
+        contentFrame:InvalidateParent(true)
+        local sbar = self.scroll:GetVBar()
+
+        function sbar:Paint(w, h)
+            --draw.RoundedBox( 0, 0, 0, w, h, Color( 0, 0, 0, 100 ) )
+        end
+
+        function sbar.btnUp:Paint(w, h)
+            --draw.RoundedBox( 0, 0, 0, w, h, Color( 200, 100, 0 ) )
+        end
+
+        function sbar.btnDown:Paint(w, h)
+            --draw.RoundedBox( 0, 0, 0, w, h, Color( 200, 100, 0 ) )
+        end
+
+        sbar.btnGrip:NoClipping(true)
+
+        function sbar.btnGrip:Paint(w, h)
+            draw.RoundedBox(8, 4, -10, w - 4, h + 20, Color(39, 121, 189, 255))
+        end
+
+        if table.Count(items or {}) <= 0 then
+            --No items found in filter, show no text
+            self.scroll.noItemsText = vgui.Create("DPanel", self.scroll)
+            self.scroll.noItemsText:Dock(TOP)
+            self.scroll.noItemsText:SetTall(96)
+
+            self.scroll.noItemsText.Paint = function(s, w, h)
+                draw.SimpleText("No items found.", BU3.UI.Fonts["large_bold"], w / 2, h / 2, Color(255, 255, 255, 20), 1, 1)
+            end
+        else
+            if IsValid(self.scroll.noItemsText) then
+                self.scroll.noItemsText:Remove()
+            end
+
+            local alreadyIndexed = {}
+
+            if (filterMode == "") then
+                for id, v in pairs(savedStat) do
+                    if not BU3.Inventory.Inventory[v] then
+                        savedStat[v] = nil
+                        continue
+                    end
+
+                    local k = v
+                    local item = BU3.Items.Items[k]
+                    item.ID = k
+
+                    if (isstring(k)) then
+                        item = BU3:FetchItem(k)
+                    end
+
+                    if item == nil then continue end
+                    alreadyIndexed[k] = true
+                    self:CreateItem(item, k, items[k], true, contentFrame)
+                end
+            end
+
+            for k, v in pairs(items) do
+                if (alreadyIndexed[k]) then continue end
+                local item = BU3.Items.Items[k]
+                item.ID = k
+
+                if (isstring(k)) then
+                    item = BU3:FetchItem(k)
+                end
+
+                if item == nil then continue end
+                self:CreateItem(item, k, v, false, contentFrame)
+            end
+        end
+    end
+
+    self.onlyCrates = vgui.Create("XeninUI.Button", self.mirrorPanel)
+    self.onlyCrates:SetPos(64, 24)
+    self.onlyCrates:SetSize(148, 28)
+    self.onlyCrates:SetColor(Color(6, 6, 6))
+    self.onlyCrates:SetText("Everything")
+    cookie.Set("unbox.filterMode", "")
+    cookie.Set("unbox_filter", "")
+
+    self.onlyCrates.DoClick = function(_)
+        local s = self.onlyCrates
+        local x, y = s:LocalToScreen(0, s:GetTall())
+        local menu = XeninUI:DropdownPopup(x, y)
+
+        menu.Paint = function(s, w, h)
+            draw.RoundedBox(4, 0, 0, w, h, Color(36, 36, 36))
+        end
+
+        menu:AddChoice("Everything", function()
+            cookie.Set("unbox.filterMode", "")
+            s:SetText("Everything")
+            DisplayItems()
+        end)
+
+        menu:AddChoice("Only Crates", function()
+            cookie.Set("unbox.filterMode", "crates")
+            s:SetText("Crates")
+            DisplayItems()
+        end)
+
+        menu:AddChoice("Only Suits", function()
+            cookie.Set("unbox.filterMode", "suits")
+            s:SetText("Suits")
+            DisplayItems()
+        end)
+
+        menu:AddChoice("Only Weapons", function()
+            cookie.Set("unbox.filterMode", "weapons")
+            s:SetText("Weapons")
+            DisplayItems()
+        end)
+
+        menu:AddChoice("Gold Rarity", function()
+            cookie.Set("unbox.filterMode", "6")
+            s:SetText("Gold")
+            DisplayItems()
+        end)
+
+        menu:AddChoice("Red Rarity", function()
+            cookie.Set("unbox.filterMode", "5")
+            s:SetText("Red")
+            DisplayItems()
+        end)
+
+        menu:AddChoice("Pink Rarity", function()
+            cookie.Set("unbox.filterMode", "4")
+            s:SetText("Pink")
+            DisplayItems()
+        end)
+
+        menu:AddChoice("Purple Rarity", function()
+            cookie.Set("unbox.filterMode", "3")
+            s:SetText("Purple")
+            DisplayItems()
+        end)
+
+        menu:AddChoice("Blue Rarity", function()
+            cookie.Set("unbox.filterMode", "2")
+            s:SetText("Blue")
+            DisplayItems()
+        end)
+
+        menu:AddChoice("White Rarity", function()
+            cookie.Set("unbox.filterMode", "1")
+            s:SetText("White")
+            DisplayItems()
+        end)
+
+        for k, v in pairs(menu:GetChildren()) do
+            v:SetTextColor(Color(235, 235, 235))
+        end
+    end
+
+    --Create the search box
+    local searchBox = BU3.UI.Elements.CreateTextEntry("Search...", self.mirrorPanel, true, true)
+    searchBox:SetUpdateOnType(true)
+    searchBox:SetText("")
+
+    searchBox.OnValueChange = function(s)
+        cookie.Set("unbox_filter", s:GetText())
+        DisplayItems()
+    end
+
+    self.search = searchBox
+    DisplayItems()
+    self.Toggle = vgui.Create("DButton", self.mirrorPanel)
+    surface.SetFont("Arena.Small")
+    local tx, ty = surface.GetTextSize("Show quick-menu")
+    self.Toggle:SetSize(tx + 24, ty + 16)
+    self.Toggle:SetText("")
+
+    self.Toggle.DoClick = function(s)
+        self.Slots:SetVisible(not self.Slots:IsVisible())
+        self.mirrorPanel:InvalidateLayout(true)
+    end
+
+    self.Toggle.Paint = function(s, w, h)
+        draw.RoundedBox(h / 2, 0, 0, w, h, Color(46, 46, 46))
+        draw.SimpleText(self.Slots:IsVisible() and "Hide quick-menu" or "Show quick-menu", "Arena.Small", w / 2, h / 2, color_white, 1, 1)
+    end
+
+    self.Slots = vgui.Create("DPanel", self.mirrorPanel)
+    self.Slots:SetVisible(false)
+    self.Slots:DockMargin(4, 4, 4, 4)
+
+    self.Slots.Paint = function(s, w, h)
+        draw.RoundedBox(16, 0, 0, w, h, Color(16, 16, 16))
+    end
+
+    for k = 0, 23 do
+        local btn = vgui.Create("DButton", self.Slots, "SLOT_" .. k)
+        btn:SetSize(72, 72)
+        btn:SetPos(4 + ((k) % 8) * 76, 4 + math.ceil((k + 1) / 8) * 76 - 76)
+        btn:SetText("")
+        btn.Slot = k
+        btn:DockMargin(2, 2, 2, 2)
+
+        btn:Receiver("BU3:Item", function(pnl, tbl, dropped)
+            if (dropped) then
+                local id = tbl[1].Item.itemID
+                local collection = {}
+
+                for k, v in pairs(slotCollection) do
+                    if (v and v.ID == id) then
+                        v:Set(nil)
+                    end
+
+                    collection[k] = v.ID
+                end
+
+                pnl:Set(id, tbl[1].Item)
+            end
+        end)
+
+        btn.Set = function(s, id, item, ignore)
+            if (IsValid(s.Content)) then
+                s.Content:Remove()
+            end
+
+            s.ID = id
+            s:SetTooltip(nil)
+
+            if (id) then
+                local iconPreview = nil
+
+                if item.iconIsModel then
+                    iconPreview = BU3.UI.Elements.ModelView(item.iconID, item.zoom, s)
+                else
+                    iconPreview = BU3.UI.Elements.IconView(item.iconID, item.color, s, false)
+                end
+
+                iconPreview:Dock(FILL)
+                iconPreview:DockMargin(2, 6, 2, 4)
+                iconPreview.zoom = item.zoom
+                iconPreview:SetMouseInputEnabled(false)
+                s.Content = iconPreview
+                s:SetTooltip(item.name)
+            end
+
+            if (ignore) then return end
+            savedStat[s.Slot] = id
+            cookie.Set("Inventory:Hotbar", util.TableToJSON(savedStat))
+        end
+
+        btn.DoClick = function(s)
+            local menu = DermaMenu()
+
+            menu:AddOption("Remove item from favorites", function()
+                savedStat[s.Slot] = nil
+                s:Set(nil)
+            end)
+
+            menu:AddOption("Cancel")
+            menu:Open()
+        end
+
+        if (BU3.Inventory.Inventory) then
+            if (savedStat[k] and BU3.Inventory.Inventory[savedStat[k]]) then
+                btn:Set(savedStat[k], BU3.Items.Items[savedStat[k]], true)
+            end
+        end
+
+        btn.Paint = function(s, w, h)
+            if (not BU3.Inventory.Inventory) then return end
+
+            if (s.ID and BU3.Items.Items[s.ID]) then
+                local borderColor = BU3.Items.Items[s.ID].itemColorCode or 1
+                local borderColorRGB = BU3.Items.RarityToColor[borderColor]
+                draw.RoundedBox(16, 0, 0, w, h, borderColorRGB)
+            else
+                draw.RoundedBox(16, 0, 0, w, h, Color(66, 66, 66))
+            end
+
+            draw.RoundedBox(16, 1, 1, w - 2, h - 2, Color(36, 36, 36))
+            draw.SimpleText(k + 1, "XeninUI.TextEntry", w - 8, h - 8, color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
+        end
+
+        table.insert(slotCollection, btn)
+    end
+
+    self.init = true
+    self.mirrorPanel:InvalidateLayout(true)
+end
+
+local function createOVerlay()
+    local pnl = vgui.Create("DFrame")
+    over = pnl
+    pnl:SetSize(ScrW(), ScrH())
+    pnl.init = SysTime()
+    pnl:ShowCloseButton(false)
+    pnl:SetDrawOnTop(true)
+    pnl:SetTitle("")
+    pnl.life = 5
+
+    pnl.Paint = function(s, w, h)
+        surface.SetDrawColor(0, 0, 0, 225)
+        surface.DrawRect(0, 0, w, h)
+        Derma_DrawBackgroundBlur(s, s.init)
+        s.life = s.life - FrameTime()
+
+        if (s.life <= 0) then
+            s:Remove()
+        end
+
+        draw.NoTexture()
+        local wide = 64
+        local compass = math.ceil(RealTime() % 4)
+        local percent = RealTime() % 1
+        local ax, ay = 0, 0
+
+        if compass == 1 then
+            ax = Lerp(percent, -wide, wide)
+            ay = -wide
+        elseif (compass == 2) then
+            ax = wide
+            ay = Lerp(percent, -wide, wide)
+        elseif (compass == 3) then
+            ax = -Lerp(percent, -wide, wide)
+            ay = wide
+        elseif (compass == 4) then
+            ax = -wide
+            ay = -Lerp(percent, -wide, wide)
+        end
+
+        local rot = (percent / 4) * 360
+        local w_ = 24 + math.cos(percent * math.pi * 2) * 4
+        surface.SetDrawColor(255, 255, 255, 50)
+        surface.DrawLine(w / 2 + ax, h / 2 - ay, w / 2 + ax, h / 2 + ay)
+        surface.DrawLine(w / 2 - ax, h / 2 + ay, w / 2 - ax, h / 2 - ay)
+        surface.DrawLine(w / 2 + ax, h / 2 - ay, w / 2 - ax, h / 2 - ay)
+        surface.DrawLine(w / 2 - ax, h / 2 + ay, w / 2 + ax, h / 2 + ay)
+        surface.DrawLine(w / 2 + ax, h / 2 + ay, w / 2 - ax, h / 2 - ay)
+        surface.DrawLine(w / 2 - ax, h / 2 + ay, w / 2 + ax, h / 2 - ay)
+        surface.SetDrawColor(0, 104, 125)
+        surface.DrawTexturedRectRotated(w / 2 + ax, h / 2 - ay, w_, w_, rot)
+        surface.DrawTexturedRectRotated(w / 2 - ax, h / 2 + ay, w_, w_, rot)
+        surface.SetDrawColor(0, 204, 255)
+        surface.DrawTexturedRectRotated(w / 2 + ax, h / 2 + ay, w_, w_, rot)
+        surface.DrawTexturedRectRotated(w / 2 - ax, h / 2 - ay, w_, w_, rot)
+        surface.DrawTexturedRectRotated(w / 2, h / 2, w_ * 2, w_ * 2, rot)
+        draw.SimpleText("Opening your crates!", "XeninUI.TextEntry", w / 2, h / 2 - wide - 64, color_white, 1, 1)
+    end
+
+    pnl:MakePopup()
+end
+
+function PAGE:CreateItem(item, k, v, fav, contentFrame)
+    local x = 0
+    local y = 0
+    local wider = 0
+    local borderColor = item.itemColorCode or 1
+    local borderColorRGB = BU3.Items.RarityToColor[borderColor]
+    --Create the panel
+    local p = vgui.Create("DButton")
+    self.icon:Add(p)
+    p:SetPos(158 * x, 203 * y)
+    p:SetSize(150, 190)
+    p.Stack = v
+    p:SetText("")
+
+    p.Paint = function(s, w, h)
+        BU3.Items.RarityToFrame[borderColor](0, 0, w, h)
+        --Draw the item name
+        local name = item.name
+
+        if string.len(name) >= 16 then
+            name = string.sub(name, 1, 14) .. "..."
+        end
+
+        draw.SimpleText(name, BU3.UI.Fonts["small_reg"], w / 2, 20, Color(200, 200, 200, 255), 1, 1)
+
+        if (fav) then
+            draw.SimpleText("★", BU3.UI.Fonts["small_reg"], w - 12, 40, Color(255, 200, 75, 255), 2, 1)
+        end
+
+        if (item.perm) then
+            draw.SimpleText("★ PERMANENT ★", "aMenu14", w / 2, h - 20, Color(255, 200, 75, 255), 1, 1)
+            draw.SimpleText(LocalPlayer()._permaWeapons[k] and "Equipped" or "", "aMenu14", w / 2, 42, Color(150, 255, 75, 255), 1, 1)
+        end
+
+        if (item.price > 0) then
+            draw.SimpleText("£" .. string.Comma(item.price), BU3.UI.Fonts["small_bold"], w / 2, h - 24, Color(200, 200, 200, 255), 1, 1)
+        end
+
+        if (v and v > 1) then
+            draw.SimpleText("x" .. s.Stack, BU3.UI.Fonts["small_bold"], w - 16, h - ((item.perm or item.price > 0) and 32 or 8), color_white, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
+        end
+
+        if (not s.InitPreview) then
+            --Create the item preview
+            s.InitPreview = true
+            local iconPreview = nil
+
+            if item.iconIsModel then
+                iconPreview = BU3.UI.Elements.ModelView(item.iconID, item.zoom, s)
+            else
+                iconPreview = BU3.UI.Elements.IconView(item.iconID, item.color, s, false)
+            end
+
+            iconPreview:Dock(FILL)
+            iconPreview:DockMargin(11, 32, 11, 24)
+            iconPreview.zoom = item.zoom
+            iconPreview:SetMouseInputEnabled(false)
+        end
+    end
+
+    if (item.type == "weapon" or item.type == "suit" or item.type == "entity") then
+        p:Droppable("BU3:Item", false)
+        p.Item = item
+        table.insert(itemCollection, p)
+    end
+
+    p.DoClick = function(s)
+        --Create list of options
+        local Menu = DermaMenu()
+
+        if item.type == "case" then
+            Menu:AddOption("Open Crate", function()
+                contentFrame:LoadPage("unbox", item.itemID)
+            end)
+
+            local amount = v
+
+            if (amount > 1) then
+                Menu:AddOption("Open Multiple Crates", function()
+                    Derma_StringRequest("Bulk opening", "How many crates would do you like to open (Max " .. math.min(amount, 5) .. ")", math.min(amount, 5), function(txt)
+                        local nmb = tonumber(txt)
+
+                        if (not nmb) then
+                            Derma_Message("Are you stupid? Only numbers!", "Error", "Ok")
+
+                            return
+                        end
+
+                        if (nmb > amount) then
+                            Derma_Message("You don't have that many crates to open", "Error", "Ok")
+
+                            return
+                        end
+
+                        if (nmb > 5) then
+                            Derma_Message("You cannot unbox above 5 crates in bulk", "Error", "Ok")
+
+                            return
+                        end
+
+                        net.Start("BU3:BulkOpening")
+                        net.WriteInt(item.itemID, 16)
+                        net.WriteInt(nmb, 16)
+                        net.SendToServer()
+                        createOVerlay()
+                    end, function() end)
+                end)
+            end
+        else
+            if item.type == "points2" or item.type == "points1" then
+                Menu:AddOption("Use Points", function()
+                    net.Start("BU3:UseItem")
+                    net.WriteInt(item.itemID, 32)
+                    net.SendToServer()
+                end)
+            end
+
+            if item.type == "points2item" or item.type == "points1item" then
+                Menu:AddOption("Use Pointshop Item", function()
+                    net.Start("BU3:UseItem")
+                    net.WriteInt(item.itemID, 32)
+                    net.SendToServer()
+                end)
+            end
+
+            if item.type == "entity" then
+                Menu:AddOption("Spawn Entity", function()
+                    net.Start("BU3:UseItem")
+                    net.WriteInt(item.itemID, 32)
+                    net.SendToServer()
+                end)
+            end
+
+            if item.type == "suit" then
+                Menu:AddOption("Equip Armor", function()
+                    net.Start("BU3:UseItemArmor")
+                    net.WriteString(item.className)
+                    net.SendToServer()
+                end)
+
+                Menu:AddOption("Drop a Suit", function()
+                    net.Start("BU3:DropItem")
+                    net.WriteString(item.className)
+                    net.WriteInt(1, 32)
+                    net.SendToServer()
+                end)
+            end
+
+            if item.type == "money" then
+                Menu:AddOption("Add Money", function()
+                    net.Start("BU3:UseItem")
+                    net.WriteInt(item.itemID, 32)
+                    net.SendToServer()
+                end)
+            end
+
+            if item.type == "weapon" then
+                Menu:AddOption("Equip Weapon", function()
+                    net.Start("BU3:UseItemWeapon")
+                    net.WriteInt(item.itemID, 32)
+                    net.SendToServer()
+                end)
+
+                if (item.perm) then
+                    if not LocalPlayer()._permaWeapons then
+                        LocalPlayer()._permaWeapons = {}
+                    end
+
+                    Menu:AddOption(LocalPlayer()._permaWeapons[item.itemID] and "Unequip Perma" or "Equip Permanently", function()
+                        if (LocalPlayer()._permaWeapons[item.itemID]) then
+                            LocalPlayer()._permaWeapons[item.itemID] = nil
+                        else
+                            LocalPlayer()._permaWeapons[item.itemID] = true
+                        end
+
+                        net.Start("BU3:EquipPerma")
+                        net.WriteInt(item.itemID, 32)
+                        net.SendToServer()
+                    end)
+                end
+
+                if (item.isSpecial) then
+                    Menu:AddOption("Drop Weapon", function()
+                        Derma_StringRequest("How many guns do you want to drop (Max " .. v .. ")", "Drop weapon", 1, function(txt)
+                            if (tonumber(txt) == nil or tonumber(txt) > v) then
+                                Derma_Message("Invalid amount of guns", "Error")
+
+                                return
+                            end
+
+                            net.Start("BU3:DropItem")
+                            net.WriteString(item.className)
+                            net.WriteInt(math.floor(tonumber(v)), 32)
+                            net.SendToServer()
+                        end)
+                    end)
+                end
+            end
+
+            if item.type == "lua" then
+                Menu:AddOption("Use Item", function()
+                    net.Start("BU3:UseItem")
+                    net.WriteInt(item.itemID, 32)
+                    net.SendToServer()
+                end)
+            end
+
+            if item.type == "accesory" then
+                Menu:AddOption("Use it", function()
+                    Derma_Message("To equip this item, go to 'Accessories' tab", "New item", "Ok")
+                    net.Start("BU3:UseItem")
+                    net.WriteInt(item.itemID, 32)
+                    net.SendToServer()
+                end)
+            end
+        end
+
+        Menu:AddSpacer()
+
+        local sub = Menu:AddOption("Gift To Player" .. (s.Stack > 1 and " x1" or "..."), function()
+            local pSel = PlayerSelector()
+            pSel:Open()
+
+            pSel.OnSelect = function(s, v)
+                Derma_Query("Are you sure do you wanna gift this item?", "Deleting", "Yes", function()
+                    net.Start("BU3:GiftItem")
+                    net.WriteInt(item.itemID, 32)
+                    net.WriteEntity(v)
+                    net.WriteInt(1, 8)
+                    net.SendToServer()
+                end, "No")
+            end
+        end)
+
+        local amount = s.Stack
+
+        if (amount > 1) then
+            local sub = Menu:AddOption("Gift Custom Amount", function()
+                local pSel = PlayerSelector()
+                pSel:Open()
+
+                pSel.OnSelect = function(s, v)
+                    Derma_StringRequest("Gift", "How many items do you want to gift", 1, function(txt)
+                        local num = tonumber(txt)
+
+                        if not num then
+                            Derma_Message("That's not a number!", "Error", "Ok")
+
+                            return
+                        end
+
+                        if num < 1 then
+                            Derma_Message("That's the best you got?", "Error", "Ok")
+
+                            return
+                        end
+
+                        if num > amount then
+                            Derma_Message("You don't have that many items", "Error", "Ok")
+
+                            return
+                        end
+
+                        net.Start("BU3:GiftItem")
+                        net.WriteInt(item.itemID, 32)
+                        net.WriteEntity(v)
+                        net.WriteInt(num, 8)
+                        net.SendToServer()
+                    end, "Cancel")
+                end
+            end)
+        end
+
+        Menu:AddOption("List on Marketplace", function()
+            asapMarket:SellItem(item.itemID)
+        end)
+
+        Menu:AddSpacer()
+
+        Menu:AddOption("Delete Item", function()
+            Derma_Query("Are you sure do you wanna delete this item?", "Deleting", "Yes", function()
+                net.Start("BU3:DeleteItem")
+                net.WriteInt(item.itemID, 32)
+                net.SendToServer()
+            end, "No")
+        end)
+
+        if (v > 1) then
+            Menu:AddOption("Delete Bulk", function()
+                Derma_StringRequest("Bulk Delete", "How many items would do you like to delete (Max " .. v .. ")", v, function(txt)
+                    local nmb = tonumber(txt)
+
+                    if (not nmb or nmb < 1) then
+                        Derma_Message("Are you stupid? Only numbers!", "Error", "Ok")
+
+                        return
+                    end
+
+                    if (nmb > amount) then
+                        Derma_Message("You don't have that many to delete", "Error", "Ok")
+
+                        return
+                    end
+
+                    net.Start("BU3:BulkDelete")
+                    net.WriteInt(item.itemID, 16)
+                    net.WriteInt(nmb, 16)
+                    net.SendToServer()
+                end, function() end)
+            end)
+        end
+
+        Menu:Open()
+    end
+
+    return p
+end
+
+--This is called when the page should unload
+function PAGE:Unload(contentFrame, direction)
+    if IsValid(self.mirrorPanel) then
+        self.mirrorPanel:Remove() --Remove all the UI we added to the content frame
+    end
+end
+
+--This can be called by anything to pass a message to the page
+function PAGE:Message(message, data)
+end
+
+--Register the page
+BU3.UI.RegisterPage("inventory", PAGE)
+
+hook.Add("InitPostEntity", "FetchItems", function()
+    RunConsoleCommand("bu3_fetchitems")
+end)
+
+local function setupPerma(data)
+    if IsValid(LocalPlayer()) then
+        LocalPlayer()._permaWeapons = data
+    else
+        timer.Simple(1, function()
+            setupPerma(data)
+        end)
+    end
+end
+
+net.Receive("BU3:EquipPerma", function()
+    setupPerma(net.ReadTable())
+end)
+
+local function showUnboxedItems(items)
+    local frame = vgui.Create("XeninUI.Frame")
+    frame:MakePopup()
+    frame:SetTitle("Unbox Result")
+    frame:SetSize(32 + #items * 208, 300)
+    frame:Center()
+    frame.Body = vgui.Create("DPanel", frame)
+    frame.Body:Dock(FILL)
+    frame.Body:DockMargin(16, 16, 16, 16)
+
+    frame.Body.Paint = function(s, w, h)
+        draw.RoundedBox(4, 0, 0, w, h, Color(6, 6, 6))
+    end
+
+    for k, v in pairs(items) do
+        local btn = vgui.Create("DPanel", frame.Body)
+        btn:Dock(LEFT)
+        btn:SetWide(200)
+        btn:DockMargin(4, 4, 4, 4)
+        local item = BU3.Items.Items[v]
+        local borderColor = item.itemColorCode or 1
+
+        btn.Paint = function(s, w, h)
+            BU3.Items.RarityToFrame[borderColor](0, 0, w, h)
+            --Draw the item name
+            local name = item.name
+
+            if string.len(name) >= 16 then
+                name = string.sub(name, 1, 14) .. "..."
+            end
+
+            draw.SimpleText(name, BU3.UI.Fonts["small_reg"], w / 2, 20, Color(200, 200, 200, 255), 1, 1)
+        end
+
+        local iconPreview = nil
+
+        if item.iconIsModel then
+            iconPreview = BU3.UI.Elements.ModelView(item.iconID, item.zoom, btn)
+        else
+            iconPreview = BU3.UI.Elements.IconView(item.iconID, item.color, btn, false)
+        end
+
+        iconPreview:Dock(FILL)
+        iconPreview:DockMargin(11, 32, 11, 24)
+        iconPreview.zoom = item.zoom
+        iconPreview:SetMouseInputEnabled(false)
+    end
+end
+
+net.Receive("BU3:BulkOpening", function()
+    local itemsWon = net.ReadTable()
+    showUnboxedItems(itemsWon)
+end)
+
+timer.Simple(1, function()
+    -- Button down func
+    keybinds.RegisterBind("openInventory", "Opens Inventory menu", KEY_I, function()
+        if (LocalPlayer():InArena()) then return end
+
+        if IsValid(aMenu.Base) then
+            aMenu.Base:SetCategory("Inventory")
+        else
+            aMenu.Base = vgui.Create("aMenuBase")
+            aMenu.Base:SetCategory("Inventory")
+        end
+    end, function() end)
+end)

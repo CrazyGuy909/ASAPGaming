@@ -1,0 +1,15 @@
+UnlitGeneric {
+    "$basetexture" "asap/armors/fire_ring"
+    "$vertexcolor" "1"
+    "$vertexalpha" "1"
+    "$additive" "1"
+    "Proxies"
+	{
+		"AnimatedTexture" 
+		{ 
+            "animatedTextureVar" "$baseTexture" 
+            "animatedTextureFrameNumVar" "$frame" 
+            "animatedTextureFrameRate" "24" 
+		}
+	}
+}
